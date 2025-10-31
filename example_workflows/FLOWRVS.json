@@ -1,0 +1,776 @@
+{
+  "id": "577a7c11-dbdd-4587-a826-64196680decf",
+  "revision": 0,
+  "last_node_id": 16,
+  "last_link_id": 31,
+  "nodes": [
+    {
+      "id": 12,
+      "type": "CLIPLoader",
+      "pos": [
+        731.6740112304688,
+        355.5521240234375
+      ],
+      "size": [
+        270,
+        106
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            17
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPLoader"
+      },
+      "widgets_values": [
+        "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+        "wan",
+        "default"
+      ]
+    },
+    {
+      "id": 1,
+      "type": "FlowRVS_SM_Model",
+      "pos": [
+        1032.4451904296875,
+        167.5520782470703
+      ],
+      "size": [
+        270,
+        126
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "FlowRVS_DIT",
+          "type": "FlowRVS_DIT",
+          "links": [
+            1
+          ]
+        },
+        {
+          "name": "FlowRVS_VAE",
+          "type": "FlowRVS_VAE",
+          "links": [
+            5,
+            22
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "FlowRVS_SM_Model"
+      },
+      "widgets_values": [
+        "mevis_dit.pth",
+        "tuned_vae.pth",
+        "wan21.safetensors"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "FlowRVS_SM_KSampler",
+      "pos": [
+        1370.748779296875,
+        -2.3578479290008545
+      ],
+      "size": [
+        270,
+        78
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "FlowRVS_DIT",
+          "link": 1
+        },
+        {
+          "name": "cond",
+          "type": "FlowRVS_Con",
+          "link": 26
+        }
+      ],
+      "outputs": [
+        {
+          "name": "condition",
+          "type": "CONDITIONING",
+          "links": [
+            4
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "FlowRVS_SM_KSampler"
+      },
+      "widgets_values": [
+        1
+      ]
+    },
+    {
+      "id": 15,
+      "type": "FlowRVS_SM_Cond",
+      "pos": [
+        1370.437255859375,
+        164.5048065185547
+      ],
+      "size": [
+        270,
+        98
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "vae",
+          "type": "FlowRVS_VAE",
+          "link": 22
+        },
+        {
+          "name": "condition",
+          "type": "CONDITIONING",
+          "link": 23
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 24
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FlowRVS_Con",
+          "type": "FlowRVS_Con",
+          "links": [
+            26
+          ]
+        },
+        {
+          "name": "FlowRVS_Par",
+          "type": "FlowRVS_Par",
+          "links": [
+            25
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "FlowRVS_SM_Cond"
+      },
+      "widgets_values": [
+        1
+      ]
+    },
+    {
+      "id": 9,
+      "type": "CreateVideo",
+      "pos": [
+        2110.913818359375,
+        164.07872009277344
+      ],
+      "size": [
+        270,
+        78
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 12
+        },
+        {
+          "name": "audio",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": 13
+        },
+        {
+          "name": "fps",
+          "type": "FLOAT",
+          "widget": {
+            "name": "fps"
+          },
+          "link": 14
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [
+            15
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CreateVideo"
+      },
+      "widgets_values": [
+        30
+      ]
+    },
+    {
+      "id": 13,
+      "type": "CreateVideo",
+      "pos": [
+        2507.1875,
+        158.2389373779297
+      ],
+      "size": [
+        270,
+        78
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 30
+        },
+        {
+          "name": "audio",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "fps",
+          "type": "FLOAT",
+          "widget": {
+            "name": "fps"
+          },
+          "link": 31
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [
+            19
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CreateVideo"
+      },
+      "widgets_values": [
+        30
+      ]
+    },
+    {
+      "id": 8,
+      "type": "FlowRVS_SM_Apply_Mask",
+      "pos": [
+        2105.4404296875,
+        -36.064247131347656
+      ],
+      "size": [
+        270.8189392089844,
+        150
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 10
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 27
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            12
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "FlowRVS_SM_Apply_Mask"
+      },
+      "widgets_values": [
+        false,
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "id": 16,
+      "type": "MaskToImage",
+      "pos": [
+        2552.053466796875,
+        47.23727798461914
+      ],
+      "size": [
+        140,
+        26
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 29
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            30
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MaskToImage"
+      }
+    },
+    {
+      "id": 11,
+      "type": "CLIPTextEncode",
+      "pos": [
+        1028.3369140625,
+        355.8509826660156
+      ],
+      "size": [
+        255.06884765625,
+        88
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 17
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            23
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        "the white cat"
+      ]
+    },
+    {
+      "id": 6,
+      "type": "GetVideoComponents",
+      "pos": [
+        1351.4053955078125,
+        378.7843322753906
+      ],
+      "size": [
+        140,
+        66
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 9
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": [
+            24,
+            27
+          ]
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": [
+            13
+          ]
+        },
+        {
+          "name": "fps",
+          "type": "FLOAT",
+          "links": [
+            14,
+            31
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "GetVideoComponents"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 7,
+      "type": "LoadVideo",
+      "pos": [
+        1539.016845703125,
+        318.3733825683594
+      ],
+      "size": [
+        478,
+        750.888916015625
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [
+            9
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadVideo"
+      },
+      "widgets_values": [
+        "e47cd39f24347a3878cce317eb3ea3eb.mp4",
+        "image"
+      ]
+    },
+    {
+      "id": 10,
+      "type": "SaveVideo",
+      "pos": [
+        2037.066162109375,
+        315.1390075683594
+      ],
+      "size": [
+        370.31671142578125,
+        756.3408203125
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 15
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "SaveVideo"
+      },
+      "widgets_values": [
+        "video/ComfyUI",
+        "auto",
+        "auto"
+      ]
+    },
+    {
+      "id": 14,
+      "type": "SaveVideo",
+      "pos": [
+        2440.700927734375,
+        311.87286376953125
+      ],
+      "size": [
+        385.0915832519531,
+        782.6072387695312
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 19
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "SaveVideo"
+      },
+      "widgets_values": [
+        "video/ComfyUI",
+        "auto",
+        "auto"
+      ]
+    },
+    {
+      "id": 4,
+      "type": "FlowRVS_SM_Encode",
+      "pos": [
+        1721.0372314453125,
+        -26.277517318725586
+      ],
+      "size": [
+        291.423828125,
+        290
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "condition",
+          "type": "CONDITIONING",
+          "link": 4
+        },
+        {
+          "name": "vae",
+          "type": "FlowRVS_VAE",
+          "link": 5
+        },
+        {
+          "name": "param",
+          "type": "FlowRVS_Par",
+          "link": 25
+        }
+      ],
+      "outputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": [
+            10,
+            29
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "FlowRVS_SM_Encode"
+      },
+      "widgets_values": [
+        0.5,
+        true,
+        3,
+        true,
+        0.01,
+        true,
+        1,
+        0,
+        "uniform"
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      2,
+      0,
+      "FlowRVS_DIT"
+    ],
+    [
+      4,
+      2,
+      0,
+      4,
+      0,
+      "CONDITIONING"
+    ],
+    [
+      5,
+      1,
+      1,
+      4,
+      1,
+      "FlowRVS_VAE"
+    ],
+    [
+      9,
+      7,
+      0,
+      6,
+      0,
+      "VIDEO"
+    ],
+    [
+      10,
+      4,
+      0,
+      8,
+      0,
+      "MASK"
+    ],
+    [
+      12,
+      8,
+      0,
+      9,
+      0,
+      "IMAGE"
+    ],
+    [
+      13,
+      6,
+      1,
+      9,
+      1,
+      "AUDIO"
+    ],
+    [
+      14,
+      6,
+      2,
+      9,
+      2,
+      "FLOAT"
+    ],
+    [
+      15,
+      9,
+      0,
+      10,
+      0,
+      "VIDEO"
+    ],
+    [
+      17,
+      12,
+      0,
+      11,
+      0,
+      "CLIP"
+    ],
+    [
+      19,
+      13,
+      0,
+      14,
+      0,
+      "VIDEO"
+    ],
+    [
+      22,
+      1,
+      1,
+      15,
+      0,
+      "FlowRVS_VAE"
+    ],
+    [
+      23,
+      11,
+      0,
+      15,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      24,
+      6,
+      0,
+      15,
+      2,
+      "IMAGE"
+    ],
+    [
+      25,
+      15,
+      1,
+      4,
+      2,
+      "FlowRVS_Par"
+    ],
+    [
+      26,
+      15,
+      0,
+      2,
+      1,
+      "FlowRVS_Con"
+    ],
+    [
+      27,
+      6,
+      0,
+      8,
+      1,
+      "IMAGE"
+    ],
+    [
+      29,
+      4,
+      0,
+      16,
+      0,
+      "MASK"
+    ],
+    [
+      30,
+      16,
+      0,
+      13,
+      0,
+      "IMAGE"
+    ],
+    [
+      31,
+      6,
+      2,
+      13,
+      2,
+      "FLOAT"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.7513148009015779,
+      "offset": [
+        -545.6424188482515,
+        92.41954489073132
+      ]
+    },
+    "frontendVersion": "1.26.13",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true
+  },
+  "version": 0.4
+}
