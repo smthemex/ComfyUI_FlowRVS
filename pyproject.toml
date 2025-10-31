@@ -1,0 +1,16 @@
+[project]
+name = "flowrvs"
+description = "FlowRVS，Deforming Videos to Masks: Flow Matching for Referring Video Segmentation，you can use it in comfyUI when use this node."
+version = "1.0.0"
+license = {file = "LICENSE"}
+dependencies = ["torch", "torchvision", "diffusers", "sentencepiece", "transformers", "timm", "tqdm", "requests", "ftfy", "regex", "matplotlib", "einops", "scipy", "pycocotools", "moviepy"]
+
+[project.urls]
+Repository = "https://github.com/smthemex/ComfyUI_FlowRVS"
+#  Used by Comfy Registry https://registry.comfy.org
+
+[tool.comfy]
+PublisherId = "smthemex"
+DisplayName = "ComfyUI_FlowRVS"
+Icon = ""
+includes = []
