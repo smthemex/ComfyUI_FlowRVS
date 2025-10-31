@@ -6,7 +6,8 @@ Coming soon
 
 Example
 ----
-![](https://github.com/smthemex/ComfyUI_FlowRVS/blob/main/example_workflows/example.png)
+![](https://github.com/smthemex/ComfyUI_FlowRVS/blob/main/example_workflows/example.gif)
+
 
 
 Citation
