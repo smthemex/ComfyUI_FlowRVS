@@ -5,16 +5,11 @@ import numpy as np
 import torch
 import os
 from omegaconf import OmegaConf
-
-from .model_loader_utils import  FlowRVS_SM_origin_dict,tensor_upscale
-from .FlowRVS.inference_demo import inference_single_video,prepare_models,data_processor,process_video_tensor,decode_latents,restore_original_size
-
+from .model_loader_utils import  FlowRVS_SM_origin_dict,gc_cleanup
+from .FlowRVS.inference_demo import inference_single_video,data_processor,process_video_tensor,decode_latents,restore_original_size,clear_comfyui_cache,load_dit,load_vae_model
 import folder_paths
 from typing_extensions import override
 from comfy_api.latest import ComfyExtension, io
-import nodes
-import comfy.model_management as mm
-
 
 MAX_SEED = np.iinfo(np.int32).max
 
@@ -38,29 +33,50 @@ class FlowRVS_SM_Model(io.ComfyNode):
             display_name="FlowRVS_SM_Model",
             category="FlowRVS_SM",
             inputs=[
-                io.Combo.Input("rvs_dit",options= ["none"] +folder_paths.get_filename_list("FlowRVS") ),
-                io.Combo.Input("rvs_vae",options= ["none"] + folder_paths.get_filename_list("FlowRVS")),
-                io.Combo.Input("wan_vae",options= ["none"] + folder_paths.get_filename_list("vae")),            
+                io.Combo.Input("wan_dit",options= ["none"] +folder_paths.get_filename_list("diffusion_models") ),
+                io.Combo.Input("rvs_dit",options= ["none"] +folder_paths.get_filename_list("FlowRVS") ),       
             ],
             outputs=[
-                io.Custom("FlowRVS_DIT").Output("model"),
-                io.Custom("FlowRVS_VAE").Output("vae"),
+                io.Model.Output(display_name="model"),
                 ],
             )
     @classmethod
-    def execute(cls, rvs_dit,rvs_vae,wan_vae,) -> io.NodeOutput:
-        
-        assert rvs_dit != "none" and rvs_vae != "none" and wan_vae!="none","need FlowRVS dit ,vae and wan diff vae"
+    def execute(cls,wan_dit, rvs_dit,) -> io.NodeOutput:
+        clear_comfyui_cache()
+        assert rvs_dit != "none" and wan_dit != "none" ,"need FlowRVS dit  and wan dit"
         args=OmegaConf.create(FlowRVS_SM_origin_dict)
         args.model_id=os.path.join(node_cr_path, "FlowRVS/util/config/Wan2.1-T2V-1.3B-Diffusers")
         args.resume=folder_paths.get_full_path("FlowRVS", rvs_dit)
-        args.vae_ckpt=folder_paths.get_full_path("FlowRVS", rvs_vae)
-        args.vae_path=folder_paths.get_full_path("vae", wan_vae)
-        model,vae=prepare_models(args)
-
-        return io.NodeOutput(model,vae)
+        args.origin_weights_path=folder_paths.get_full_path("diffusion_models", wan_dit)
+        model=load_dit(args)
+        return io.NodeOutput(model)
     
-
+class FlowRVS_SM_VAE(io.ComfyNode):
+    @classmethod
+    def define_schema(cls):
+        
+        return io.Schema(
+            node_id="FlowRVS_SM_VAE",
+            display_name="FlowRVS_SM_VAE",
+            category="FlowRVS_SM",
+            inputs=[
+                io.Combo.Input("wan_vae",options= ["none"] + folder_paths.get_filename_list("vae")), 
+                io.Combo.Input("rvs_vae",options= ["none"] + folder_paths.get_filename_list("FlowRVS")),           
+            ],
+            outputs=[
+                io.Vae.Output(display_name="vae"),
+                ],
+            )
+    @classmethod
+    def execute(cls, wan_vae,rvs_vae) -> io.NodeOutput:
+        clear_comfyui_cache()      
+        assert  rvs_vae != "none" and wan_vae!="none","need FlowRVS vae and wan vae"
+        model_id=os.path.join(node_cr_path, "FlowRVS/util/config/Wan2.1-T2V-1.3B-Diffusers")
+        vae_ckpt=folder_paths.get_full_path("FlowRVS", rvs_vae)
+        vae_path=folder_paths.get_full_path("vae", wan_vae)
+        vae=load_vae_model(model_id,vae_ckpt,vae_path,device)
+        return io.NodeOutput(vae)
+    
 class FlowRVS_SM_Cond(io.ComfyNode):
     @classmethod
     def define_schema(cls):
@@ -69,41 +85,35 @@ class FlowRVS_SM_Cond(io.ComfyNode):
             display_name="FlowRVS_SM_Cond",
             category="FlowRVS_SM",
             inputs=[
-                io.Custom("FlowRVS_VAE").Input("vae"),
-                io.Conditioning.Input("condition"),
+                io.Vae.Input("vae"),
+                io.Conditioning.Input("positive"),
                 io.Image.Input("image"),
                 io.Float.Input("value", default=1.0, min=0.0, max=1.0,step=0.01,),
                 ],
             outputs=[
-                io.Custom("FlowRVS_Con").Output("cond"),
-                io.Custom("FlowRVS_Par").Output("param"),
+                io.Conditioning.Output(display_name="cond"),
                      ],
 
         )
     @classmethod
-    def execute(cls, vae,condition,image,value) -> io.NodeOutput:
-        #text_processor=load_text_processor(os.path.join(node_cr_path, "FlowRVS/util/config/Wan2.1-T2V-1.3B-Diffusers"),clip,device)
-        cf_models=mm.loaded_models()
-        for model in cf_models:   
-            model.unpatch_model(device_to=torch.device("cpu"))
-        mm.soft_empty_cache()
+    def execute(cls, vae,positive,image,value) -> io.NodeOutput:
+        clear_comfyui_cache()
         image,original_info=process_video_tensor(image,value)
-        cond,param=data_processor(condition[0][0] ,vae,image,device,dtype=torch.bfloat16)  
-        param.update({"original_info":original_info})
-        return io.NodeOutput (cond,param)
+        cond=data_processor(positive[0][0] ,vae,image,device,dtype=torch.bfloat16)  
+        cond["original_info"] = original_info       
+        return io.NodeOutput (cond)
 
 
 class FlowRVS_SM_Decoder(io.ComfyNode):
     @classmethod
     def define_schema(cls):
         return io.Schema(
-            node_id="FlowRVS_SM_Encode",
-            display_name="FlowRVS_SM_Encode",
+            node_id="FlowRVS_SM_Decoder",
+            display_name="FlowRVS_SM_Decoder",
             category="FlowRVS_SM",
             inputs=[
-                io.Conditioning.Input("condition"),
-                io.Custom("FlowRVS_VAE").Input("vae"),
-                io.Custom("FlowRVS_Par").Input("param"),
+                io.Conditioning.Input("cond"),
+                io.Vae.Input("vae"),
                 io.Float.Input("threshold", default=0.5, min=0.1, max=1,step=0.1),
                 io.Boolean.Input("morphological", default=True),
                 io.Int.Input("kernel_size", default=3, min=1, max=10),
@@ -119,11 +129,13 @@ class FlowRVS_SM_Decoder(io.ComfyNode):
                 ],
         )
     @classmethod
-    def execute(cls,condition, vae, param,threshold,morphological,kernel_size,connected_components,min_area_ratio,gaussian_smoothing,sigma,shrink_pixels,shrink_method) -> io.NodeOutput:
-        mask=decode_latents(vae,condition,param["origin_h"], param["origin_w"],param["original_len"],
+    def execute(cls,cond, vae,threshold,morphological,kernel_size,connected_components,min_area_ratio,gaussian_smoothing,sigma,shrink_pixels,shrink_method) -> io.NodeOutput:
+        clear_comfyui_cache()
+        mask=decode_latents(vae,cond["latents"],cond["origin_h"], cond["origin_w"],cond["original_len"],
                             threshold,device,morphological,connected_components,gaussian_smoothing,shrink_pixels,kernel_size,min_area_ratio,sigma,shrink_method)
-        mm.soft_empty_cache()
-        mask=restore_original_size(mask, param["original_info"],True)
+        mask=restore_original_size(mask, cond["original_info"],True)
+        del cond
+        gc_cleanup()
         return io.NodeOutput(mask)
 
 
@@ -135,8 +147,8 @@ class FlowRVS_SM_KSampler(io.ComfyNode):
             display_name="FlowRVS_SM_KSampler",
             category="FlowRVS_SM",
             inputs=[
-                io.Custom("FlowRVS_DIT").Input("model"),
-                io.Custom("FlowRVS_Con").Input("cond"),
+                io.Model.Input("model"),
+                io.Conditioning.Input("cond"),
                 io.Int.Input("steps", default=1, min=1, max=10000),
             ],
             outputs=[
@@ -145,8 +157,10 @@ class FlowRVS_SM_KSampler(io.ComfyNode):
         ) 
     @classmethod
     def execute(cls, model,cond,steps ) -> io.NodeOutput: 
-        condition=inference_single_video( model,steps, os.path.join(node_cr_path, "FlowRVS/util/config/Wan2.1-T2V-1.3B-Diffusers"), cond["x0_video_latent"], cond["prompt_embeds"],device)
-        return io.NodeOutput(condition)
+        clear_comfyui_cache()
+        latents=inference_single_video( model,steps, os.path.join(node_cr_path, "FlowRVS/util/config/Wan2.1-T2V-1.3B-Diffusers"), cond["x0_video_latent"], cond["prompt_embeds"],device)
+        cond["latents"] = latents
+        return io.NodeOutput(cond)
 
 class FlowRVS_SM_Apply_Mask(io.ComfyNode):
     @classmethod
@@ -181,17 +195,12 @@ class FlowRVS_SM_Apply_Mask(io.ComfyNode):
         return io.NodeOutput(image)
 
 
-from aiohttp import web
-from server import PromptServer
-@PromptServer.instance.routes.get("/FlowRVS_SM_Extension")
-async def get_hello(request):
-    return web.json_response("FlowRVS_SM_Extension")
-
 class FlowRVS_SM_Extension(ComfyExtension):
     @override
     async def get_node_list(self) -> list[type[io.ComfyNode]]:
         return [
             FlowRVS_SM_Model,
+            FlowRVS_SM_VAE,
             FlowRVS_SM_Cond,
             FlowRVS_SM_Decoder,
             FlowRVS_SM_KSampler,

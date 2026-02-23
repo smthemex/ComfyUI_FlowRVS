@@ -1,37 +1,45 @@
 import os
 import sys
-import argparse
-import random
-import time
-from pathlib import Path
+
 import numpy as np
 import torch
 import torch.nn.functional as F
-from PIL import Image, ImageDraw
 from tqdm import tqdm
 
 #import opts
 from .util import misc  as utils_
 from .models.wan_rvos import build_dit
 from .models.text import TextProcessor
-from diffusers.models import AutoencoderKLWan
+
 from diffusers.schedulers import FlowMatchEulerDiscreteScheduler
-from transformers import AutoTokenizer, UMT5EncoderModel
+from transformers import AutoTokenizer
 from .models.mask_vae_finetuner import MaskVAEFinetuner
-from .datasets.transform_utils import VideoEvalDataset, vis_add_mask_new, check_shape
+from .datasets.transform_utils import check_shape
 from .utils_inf import colormap
-from torch.utils.data import DataLoader
-from moviepy import ImageSequenceClip
 from comfy.utils import common_upscale
 import comfy.model_management as mm
 import cv2
 from scipy import ndimage
-
+import gc
 
 
 opts={}
 color_list = colormap().astype('uint8').tolist()
+def gc_cleanup():
+    gc.collect()
+    torch.cuda.empty_cache()
 
+def clear_comfyui_cache():
+    cf_models=mm.loaded_models()
+    try:
+        for pipe in cf_models:
+            pipe.unpatch_model(device_to=torch.device("cpu"))
+            #print(f"Unpatching models.{pipe}")
+    except: pass
+    mm.soft_empty_cache()
+    torch.cuda.empty_cache()
+    max_gpu_memory = torch.cuda.max_memory_allocated()
+    #print(f"After Max GPU memory allocated: {max_gpu_memory / 1000 ** 3:.2f} GB")
 
 def tensor_upscale(tensor, width, height):
     samples = tensor.movedim(-1, 1)
@@ -60,6 +68,45 @@ def extract_frames_from_mp4(video_path, output_folder):
     return output_folder, frames_list, '.png'
 
 
+def load_dit(args):
+    model = build_dit(args)
+    if args.resume:
+        print(f"[Loading checkpoint from {args.resume}")
+        checkpoint = torch.load(args.resume, map_location='cpu', weights_only=False)
+        model_state_dict = checkpoint.get('model', checkpoint) 
+
+        missing_keys, unexpected_keys = model.load_state_dict(model_state_dict, strict=False)
+
+        unexpected_keys = [k for k in unexpected_keys if not (k.endswith('total_params') or k.endswith('total_ops'))]
+        if len(missing_keys) > 0:
+            print(f'Missing Keys: {missing_keys}')
+        if len(unexpected_keys) > 0:
+            print(f'Unexpected Keys: {unexpected_keys}')
+        del checkpoint
+        gc_cleanup()
+    else:
+        raise ValueError('Please specify the checkpoint for inference using --resume.')
+    model.to(torch.bfloat16).eval() 
+    return model
+
+def load_vae_model(model_id,vae_ckpt,vae_path,device):
+    mask_vae = MaskVAEFinetuner(vae_model_id=model_id,vae_path=vae_path, target_dtype=torch.bfloat16)
+     #print(f"[Loading checkpoint from {args.vae_ckpt}]")
+    vae_checkpoint = torch.load(vae_ckpt, map_location='cpu', weights_only=False)
+    vae_state_dict = vae_checkpoint.get('model', vae_checkpoint)
+    #torch.save(vae_state_dict, 'decoder.pth')
+    missing_keys, unexpected_keys = mask_vae.load_state_dict(vae_state_dict, strict=True)
+    unexpected_keys = [k for k in unexpected_keys if not (k.endswith('total_params') or k.endswith('total_ops'))]
+    if len(missing_keys) > 0:
+        print(f'Missing Keys: {missing_keys}')
+    if len(unexpected_keys) > 0:
+        print(f'Unexpected Keys: {unexpected_keys}')
+    del vae_checkpoint
+    gc_cleanup()
+    vae = mask_vae.vae.to(device).eval() 
+    return vae
+    
+
 def prepare_models(args):
     device = torch.device(args.device)
 
@@ -83,22 +130,34 @@ def prepare_models(args):
     if len(unexpected_keys) > 0:
         print(f'Unexpected Keys: {unexpected_keys}')
     del vae_checkpoint
+    gc_cleanup()
 
     vae = mask_vae.vae.to(device).eval() 
 
     if args.resume:
         print(f"[Loading checkpoint from {args.resume}")
         checkpoint = torch.load(args.resume, map_location='cpu', weights_only=False)
-        model_state_dict = checkpoint.get('model', checkpoint) 
-
-        missing_keys, unexpected_keys = model.load_state_dict(model_state_dict, strict=False)
-
-        unexpected_keys = [k for k in unexpected_keys if not (k.endswith('total_params') or k.endswith('total_ops'))]
-        if len(missing_keys) > 0:
-            print(f'Missing Keys: {missing_keys}')
-        if len(unexpected_keys) > 0:
-            print(f'Unexpected Keys: {unexpected_keys}')
+        if 'model' in checkpoint:
+            print("[Info] Loading base model weights (to restore buffers)...")
+            model.load_state_dict(checkpoint['model'], strict=False)
+        
+        if 'ema_model' in checkpoint:
+            print("[Info] Found 'ema_model'. Applying EMA weights...")
+            ema_helper = EMAModel(
+                model.parameters(),
+                decay=0.9999,
+                model_cls=type(model),
+                model_config=model.config
+            )
+            ema_helper.load_state_dict(checkpoint['ema_model'])
+            ema_helper.copy_to(model.parameters())
+            print("[Info] EMA weights applied successfully.")
+            del ema_helper
+            torch.cuda.empty_cache()
+        else:
+            print("[Warning] No EMA found in checkpoint, using standard weights.")
         del checkpoint
+        gc_cleanup()
     else:
         raise ValueError('Please specify the checkpoint for inference using --resume.')
     
@@ -116,7 +175,8 @@ def load_text_processor(model_id,text_encoder,device):
     return text_processor
 
 def data_processor(prompt_embeds,vae,video_t,device,dtype):
-   
+    if vae.device != device :
+        vae.to(device)
     device, dtype = vae.device, vae.dtype
     mean_tensor = torch.tensor(vae.config.latents_mean, device=device, dtype=dtype).view(1, -1, 1, 1, 1)
     std_tensor = torch.tensor(vae.config.latents_std, device=device, dtype=dtype).view(1, -1, 1, 1, 1)
@@ -145,10 +205,9 @@ def data_processor(prompt_embeds,vae,video_t,device,dtype):
         x0_video_latent=x0_video_latent.to(device)
         prompt_embeds=prompt_embeds.to(device,dtype=dtype)
     vae.to("cpu")
-    torch.cuda.empty_cache()
-    cond={"prompt_embeds": prompt_embeds,"x0_video_latent": x0_video_latent,}
-    param={"original_len": t, "origin_h": origin_h, "origin_w": origin_w}
-    return cond,param
+    gc_cleanup()
+    cond={"prompt_embeds": prompt_embeds,"x0_video_latent": x0_video_latent,"original_len": t, "origin_h": origin_h, "origin_w": origin_w}
+    return cond
 
 def inference_single_video(model,steps, model_id, x0_video_latent, prompt_embeds,device):
     model=model.to(device)
@@ -260,32 +319,41 @@ def inference_single_video(model,steps, model_id, x0_video_latent, prompt_embeds
             )[0]
             latents = scheduler.step(noise_pred, t, latents)[0]
         latents = latents * std_tensor + mean_tensor
+        del x0_video_latent, prompt_embeds, noise_pred,std_tensor, mean_tensor
     model.to("cpu")
-    torch.cuda.empty_cache()
+    gc_cleanup()
     #print('latents', latents.shape) #latents torch.Size([1, 16, 28, 60, 104])
     return latents
 
 def decode_latents(vae,latents,origin_h, origin_w,original_len,threshold,device,morphological,connected_components,gaussian,shrink_pixels=0,kernel_size=3,min_area_ratio=0.01,sigma=1.0,shrink_method="uniform"):
     #latents = latents * std_tensor_mask + mean_tensor_mask
-    vae=vae.to(device)
-    decoded_pixel_output = vae.decode(latents.detach())[0]
-    decoded_pixel_output = F.interpolate(decoded_pixel_output.view(-1, 1, decoded_pixel_output.shape[-2], decoded_pixel_output.shape[-1]),
+    vae.to(device)
+    all_pred_masks = vae.decode(latents.detach())[0]
+    vae.to("cpu")
+    del latents
+    gc_cleanup()
+    all_pred_masks = F.interpolate(all_pred_masks.view(-1, 1, all_pred_masks.shape[-2], all_pred_masks.shape[-1]),
                         size=(origin_h, origin_w), mode='bilinear', align_corners=False) 
-    reconstructed_mask_probs = torch.sigmoid(decoded_pixel_output)
-    all_pred_masks = (reconstructed_mask_probs > threshold).float().cpu().squeeze(0).squeeze(1)
-    #all_pred_masks = all_pred_masks[:original_len] 
+    all_pred_masks = torch.sigmoid(all_pred_masks)
+    all_pred_masks = (all_pred_masks > threshold).float().cpu().squeeze(0).squeeze(1)
+
     all_pred_masks = all_pred_masks[:original_len].numpy() 
-    #print('all_pred_masks', all_pred_masks.shape) #all_pred_masks (106, 320, 512) 
+
     if morphological:
         all_pred_masks = morphological_postprocessing(all_pred_masks, kernel_size=kernel_size)
+        gc_cleanup()
     if connected_components:
         all_pred_masks = connected_components_filter(all_pred_masks, min_area_ratio=min_area_ratio)
+        gc_cleanup()
     if gaussian:
         all_pred_masks = gaussian_smoothing(all_pred_masks, sigma=sigma)
+        gc_cleanup()
     if shrink_pixels > 0:
         all_pred_masks = shrink_mask_center_advanced(all_pred_masks, shrink_pixels, shrink_method)
+        gc_cleanup()
     if isinstance(all_pred_masks, np.ndarray):
         all_pred_masks = torch.from_numpy(all_pred_masks)
+
     return all_pred_masks
 
 

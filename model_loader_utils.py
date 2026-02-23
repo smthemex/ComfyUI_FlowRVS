@@ -21,12 +21,12 @@ FlowRVS_SM_origin_dict={
             "device":"cuda",
             "model_id":"Wan2.1-T2V-1.3B-Diffusers",#wan2.1/Wan2.1-T2V-14B-Diffusers
             "local_dir":cur_path,
-            "lr":7e-5,
+            "lr":5e-5,
             "lr_drop":30,
             "batch_size":1,
             "weight_decay":5e-4,
-            "epochs":200,
-            "clip_max_norm":0.1,
+            "epochs":50,
+            "clip_max_norm":1.0,
             "amp":False,
             "resume":"", #PATH
             "output_dir":"",
@@ -53,7 +53,6 @@ FlowRVS_SM_origin_dict={
             "focal_alpha":0.25,
             "num_frames":17,
             "image_size":512,
-            "latent_resolution_scale":8,
             "dataset_files":"ytvos",
             "ytvos_path":"datasets/refer_youtube_vos",
             "davis_path":"datasets/refer_davis",
@@ -74,8 +73,8 @@ FlowRVS_SM_origin_dict={
             "tag":"debug",
             "exp_name":"main",
             "current_epoch":0,
-            "high_reso":False, #5B
-            "big":False, #5B
+            "use_gradient_ckpt":True, #5B
+            "use_dvi":False, #5B
         }
 def gc_cleanup():
     gc.collect()
