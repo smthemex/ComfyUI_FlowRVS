@@ -3,7 +3,7 @@
 
 # Update
 * support new checkpoints,and fix some bugs
-* 支持新的模型，修复一些bug
+* 支持新的模型，调整emb长度，调整解码和加载模型的代码，应该算是复现了
 
 # 1. Installation
 In the ./ComfyUI/custom_nodes directory, run the following:   
