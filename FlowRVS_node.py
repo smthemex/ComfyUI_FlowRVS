@@ -89,6 +89,7 @@ class FlowRVS_SM_Cond(io.ComfyNode):
                 io.Conditioning.Input("positive"),
                 io.Image.Input("image"),
                 io.Float.Input("value", default=1.0, min=0.0, max=1.0,step=0.01,),
+
                 ],
             outputs=[
                 io.Conditioning.Output(display_name="cond"),
@@ -99,7 +100,9 @@ class FlowRVS_SM_Cond(io.ComfyNode):
     def execute(cls, vae,positive,image,value) -> io.NodeOutput:
         clear_comfyui_cache()
         image,original_info=process_video_tensor(image,value)
-        cond=data_processor(positive[0][0] ,vae,image,device,dtype=torch.bfloat16)  
+        prompt_embeds=positive[0][0][:, :64, :].to(device,dtype=torch.bfloat16) # 方法只取64长度
+        #print(prompt_embeds.shape)
+        cond=data_processor(prompt_embeds ,vae,image,device,dtype=torch.bfloat16)  
         cond["original_info"] = original_info       
         return io.NodeOutput (cond)
 

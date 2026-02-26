@@ -1,8 +1,8 @@
 {
   "id": "577a7c11-dbdd-4587-a826-64196680decf",
   "revision": 0,
-  "last_node_id": 22,
-  "last_link_id": 42,
+  "last_node_id": 24,
+  "last_link_id": 47,
   "nodes": [
     {
       "id": 13,
@@ -53,398 +53,6 @@
       },
       "widgets_values": [
         30
-      ]
-    },
-    {
-      "id": 16,
-      "type": "MaskToImage",
-      "pos": [
-        2552.053466796875,
-        47.23727798461914
-      ],
-      "size": [
-        140,
-        26
-      ],
-      "flags": {},
-      "order": 11,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "mask",
-          "type": "MASK",
-          "link": 42
-        }
-      ],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            30
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "MaskToImage"
-      },
-      "widgets_values": []
-    },
-    {
-      "id": 20,
-      "type": "FlowRVS_SM_VAE",
-      "pos": [
-        815.494198848251,
-        -83.71205489073151
-      ],
-      "size": [
-        270,
-        82
-      ],
-      "flags": {},
-      "order": 0,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "vae",
-          "type": "VAE",
-          "links": [
-            36,
-            40
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "FlowRVS_SM_VAE"
-      },
-      "widgets_values": [
-        "wan21.safetensors",
-        "tuned_vae.pth"
-      ]
-    },
-    {
-      "id": 8,
-      "type": "FlowRVS_SM_Apply_Mask",
-      "pos": [
-        2086.4071296874995,
-        -66.81034713134765
-      ],
-      "size": [
-        270.8189392089844,
-        150
-      ],
-      "flags": {},
-      "order": 10,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "mask",
-          "type": "MASK",
-          "link": 41
-        },
-        {
-          "name": "image",
-          "type": "IMAGE",
-          "link": 27
-        }
-      ],
-      "outputs": [
-        {
-          "name": "image",
-          "type": "IMAGE",
-          "links": [
-            12
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "FlowRVS_SM_Apply_Mask"
-      },
-      "widgets_values": [
-        false,
-        255,
-        255,
-        255
-      ]
-    },
-    {
-      "id": 22,
-      "type": "Note",
-      "pos": [
-        2045.0558128854066,
-        -337.4676788624953
-      ],
-      "size": [
-        443.59999999999945,
-        171.0999999999999
-      ],
-      "flags": {},
-      "order": 1,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [],
-      "properties": {},
-      "widgets_values": [
-        "threshold 掩码阈值\nmorgphological 是否开启形态学处理\nkernel size 形态学处理核大小\nconnected components 连通域去除小面积占比\nmin area ratio 占比值\nGaussian smoothing  是否开启高斯平滑\nsigma  高斯平滑参数\nshrink pixels 大于0时开启遮罩中心缩放\nshrink method 中心缩放 可选参数"
-      ],
-      "color": "#432",
-      "bgcolor": "#653"
-    },
-    {
-      "id": 18,
-      "type": "FlowRVS_SM_Model",
-      "pos": [
-        839.1716988482507,
-        -241.02745489073152
-      ],
-      "size": [
-        270,
-        82
-      ],
-      "flags": {},
-      "order": 2,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "links": [
-            33
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "FlowRVS_SM_Model"
-      },
-      "widgets_values": [
-        "Wan2.1-T2V-1.3B.safetensors",
-        "FlowRVS_dit_mevis.pth"
-      ]
-    },
-    {
-      "id": 21,
-      "type": "FlowRVS_SM_Cond",
-      "pos": [
-        1173.490298848252,
-        -163.43565489073143
-      ],
-      "size": [
-        270,
-        98
-      ],
-      "flags": {},
-      "order": 7,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "vae",
-          "type": "VAE",
-          "link": 36
-        },
-        {
-          "name": "positive",
-          "type": "CONDITIONING",
-          "link": 37
-        },
-        {
-          "name": "image",
-          "type": "IMAGE",
-          "link": 38
-        }
-      ],
-      "outputs": [
-        {
-          "name": "cond",
-          "type": "CONDITIONING",
-          "links": [
-            39
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "FlowRVS_SM_Cond"
-      },
-      "widgets_values": [
-        1
-      ]
-    },
-    {
-      "id": 2,
-      "type": "FlowRVS_SM_KSampler",
-      "pos": [
-        1468.7486592968746,
-        -275.81201792900066
-      ],
-      "size": [
-        270,
-        78
-      ],
-      "flags": {},
-      "order": 8,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "link": 33
-        },
-        {
-          "name": "cond",
-          "type": "CONDITIONING",
-          "link": 39
-        }
-      ],
-      "outputs": [
-        {
-          "name": "condition",
-          "type": "CONDITIONING",
-          "links": [
-            32
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "FlowRVS_SM_KSampler"
-      },
-      "widgets_values": [
-        1
-      ]
-    },
-    {
-      "id": 6,
-      "type": "GetVideoComponents",
-      "pos": [
-        1530.494107507812,
-        28.015254275390678
-      ],
-      "size": [
-        140,
-        66
-      ],
-      "flags": {},
-      "order": 6,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "video",
-          "type": "VIDEO",
-          "link": 9
-        }
-      ],
-      "outputs": [
-        {
-          "name": "images",
-          "type": "IMAGE",
-          "links": [
-            27,
-            38
-          ]
-        },
-        {
-          "name": "audio",
-          "type": "AUDIO",
-          "links": [
-            13
-          ]
-        },
-        {
-          "name": "fps",
-          "type": "FLOAT",
-          "links": [
-            14,
-            31
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "GetVideoComponents"
-      },
-      "widgets_values": []
-    },
-    {
-      "id": 12,
-      "type": "CLIPLoader",
-      "pos": [
-        821.8467972304683,
-        54.31534202343762
-      ],
-      "size": [
-        270,
-        106
-      ],
-      "flags": {},
-      "order": 3,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "CLIP",
-          "type": "CLIP",
-          "links": [
-            17
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "CLIPLoader"
-      },
-      "widgets_values": [
-        "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
-        "wan",
-        "default"
-      ]
-    },
-    {
-      "id": 17,
-      "type": "FlowRVS_SM_Decoder",
-      "pos": [
-        1733.4276988482516,
-        -129.61725489073126
-      ],
-      "size": [
-        300.130859375,
-        270
-      ],
-      "flags": {},
-      "order": 9,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "cond",
-          "type": "CONDITIONING",
-          "link": 32
-        },
-        {
-          "name": "vae",
-          "type": "VAE",
-          "link": 40
-        }
-      ],
-      "outputs": [
-        {
-          "name": "mask",
-          "type": "MASK",
-          "links": [
-            41,
-            42
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "FlowRVS_SM_Decoder"
-      },
-      "widgets_values": [
-        0.5,
-        true,
-        3,
-        true,
-        0.01,
-        true,
-        1,
-        0,
-        "uniform"
       ]
     },
     {
@@ -499,52 +107,290 @@
       ]
     },
     {
-      "id": 11,
-      "type": "CLIPTextEncode",
+      "id": 16,
+      "type": "MaskToImage",
       "pos": [
-        1160.60798499856,
-        73.10688333850713
+        2537.412466796875,
+        -151.081722015381
       ],
       "size": [
-        255.06884765625,
-        88
+        140,
+        26
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 42
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            30
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MaskToImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 8,
+      "type": "FlowRVS_SM_Apply_Mask",
+      "pos": [
+        2149.1071296874993,
+        -64.61034713134764
+      ],
+      "size": [
+        270.8189392089844,
+        150
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 41
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 27
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            12
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "FlowRVS_SM_Apply_Mask"
+      },
+      "widgets_values": [
+        false,
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "id": 22,
+      "type": "Note",
+      "pos": [
+        2045.0558128854066,
+        -337.4676788624953
+      ],
+      "size": [
+        443.59999999999945,
+        171.0999999999999
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "threshold 掩码阈值\nmorgphological 是否开启形态学处理\nkernel size 形态学处理核大小\nconnected components 连通域去除小面积占比\nmin area ratio 占比值\nGaussian smoothing  是否开启高斯平滑\nsigma  高斯平滑参数\nshrink pixels 大于0时开启遮罩中心缩放\nshrink method 中心缩放 可选参数"
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 6,
+      "type": "GetVideoComponents",
+      "pos": [
+        1060.112107507813,
+        184.72825427539058
+      ],
+      "size": [
+        140,
+        66
       ],
       "flags": {},
       "order": 5,
       "mode": 0,
       "inputs": [
         {
-          "name": "clip",
-          "type": "CLIP",
-          "link": 17
+          "name": "video",
+          "type": "VIDEO",
+          "link": 9
         }
       ],
       "outputs": [
         {
-          "name": "CONDITIONING",
-          "type": "CONDITIONING",
+          "name": "images",
+          "type": "IMAGE",
           "links": [
-            37
+            27,
+            38
+          ]
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": [
+            13
+          ]
+        },
+        {
+          "name": "fps",
+          "type": "FLOAT",
+          "links": [
+            14,
+            31
           ]
         }
       ],
       "properties": {
-        "Node name for S&R": "CLIPTextEncode"
+        "Node name for S&R": "GetVideoComponents"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 18,
+      "type": "FlowRVS_SM_Model",
+      "pos": [
+        839.1716988482507,
+        -241.02745489073152
+      ],
+      "size": [
+        331.2259999999999,
+        82
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "links": [
+            33
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "FlowRVS_SM_Model"
       },
       "widgets_values": [
-        "the man wear in blue clothes "
+        "Wan2.1-T2V-1.3B.safetensors",
+        "FlowRVS_dit_mevis.pth"
+      ]
+    },
+    {
+      "id": 21,
+      "type": "FlowRVS_SM_Cond",
+      "pos": [
+        1233.6272988482526,
+        -80.84105489073154
+      ],
+      "size": [
+        270,
+        98
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 36
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 47
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 38
+        }
+      ],
+      "outputs": [
+        {
+          "name": "cond",
+          "type": "CONDITIONING",
+          "links": [
+            39
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "FlowRVS_SM_Cond"
+      },
+      "widgets_values": [
+        1
+      ]
+    },
+    {
+      "id": 2,
+      "type": "FlowRVS_SM_KSampler",
+      "pos": [
+        1479.7959592968743,
+        -281.19651792900055
+      ],
+      "size": [
+        270,
+        78
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 33
+        },
+        {
+          "name": "cond",
+          "type": "CONDITIONING",
+          "link": 39
+        }
+      ],
+      "outputs": [
+        {
+          "name": "condition",
+          "type": "CONDITIONING",
+          "links": [
+            32
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "FlowRVS_SM_KSampler"
+      },
+      "widgets_values": [
+        1
       ]
     },
     {
       "id": 10,
       "type": "SaveVideo",
       "pos": [
-        1400.849225756012,
-        239.64992241535947
+        1210.0500457560133,
+        287.8709524153595
       ],
       "size": [
-        696.2140959757814,
-        1162.8250595125003
+        734.8663359757816,
+        649.1497519818362
       ],
       "flags": {},
       "order": 14,
@@ -570,15 +416,15 @@
       "id": 7,
       "type": "LoadVideo",
       "pos": [
-        854.5392057031247,
-        221.5455525683601
+        504.29882730312517,
+        291.87366426835985
       ],
       "size": [
-        478,
-        923.7777777777778
+        614.89335,
+        592.0127177777779
       ],
       "flags": {},
-      "order": 4,
+      "order": 2,
       "mode": 0,
       "inputs": [],
       "outputs": [
@@ -594,7 +440,7 @@
         "Node name for S&R": "LoadVideo"
       },
       "widgets_values": [
-        "微信视频2026-02-23_163928_761.mp4",
+        "微信视频2026-02-23_153338_235.mp4",
         "image"
       ]
     },
@@ -602,12 +448,12 @@
       "id": 14,
       "type": "SaveVideo",
       "pos": [
-        2116.4764326123777,
-        268.1677923925312
+        1997.005872612378,
+        275.63470239253144
       ],
       "size": [
-        460.5459093639529,
-        916.7482833136941
+        800.956984653209,
+        698.7177384899068
       ],
       "flags": {},
       "order": 15,
@@ -627,6 +473,160 @@
         "video/ComfyUI",
         "auto",
         "auto"
+      ]
+    },
+    {
+      "id": 17,
+      "type": "FlowRVS_SM_Decoder",
+      "pos": [
+        1720.117698848252,
+        -116.30725489073122
+      ],
+      "size": [
+        300.130859375,
+        270
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "cond",
+          "type": "CONDITIONING",
+          "link": 32
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 40
+        }
+      ],
+      "outputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": [
+            41,
+            42
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "FlowRVS_SM_Decoder"
+      },
+      "widgets_values": [
+        0.5,
+        true,
+        3,
+        true,
+        0.01,
+        true,
+        1,
+        0,
+        "uniform"
+      ]
+    },
+    {
+      "id": 24,
+      "type": "CLIPTextEncode",
+      "pos": [
+        1290.964104998559,
+        116.78176333850745
+      ],
+      "size": [
+        361.54884765625,
+        88
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 45
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            47
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        "the gun"
+      ]
+    },
+    {
+      "id": 20,
+      "type": "FlowRVS_SM_VAE",
+      "pos": [
+        746.3882388482506,
+        -51.71338489073158
+      ],
+      "size": [
+        325.65999999999997,
+        83.21000000000004
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "vae",
+          "type": "VAE",
+          "links": [
+            36,
+            40
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "FlowRVS_SM_VAE"
+      },
+      "widgets_values": [
+        "wan21.safetensors",
+        "tuned_vae.pth"
+      ]
+    },
+    {
+      "id": 12,
+      "type": "CLIPLoader",
+      "pos": [
+        666.2618072304672,
+        94.04019202343768
+      ],
+      "size": [
+        339.29999999999995,
+        106
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            45
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPLoader"
+      },
+      "widgets_values": [
+        "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+        "wan",
+        "default"
       ]
     }
   ],
@@ -670,14 +670,6 @@
       10,
       0,
       "VIDEO"
-    ],
-    [
-      17,
-      12,
-      0,
-      11,
-      0,
-      "CLIP"
     ],
     [
       19,
@@ -736,14 +728,6 @@
       "VAE"
     ],
     [
-      37,
-      11,
-      0,
-      21,
-      1,
-      "CONDITIONING"
-    ],
-    [
       38,
       6,
       0,
@@ -782,6 +766,22 @@
       16,
       0,
       "MASK"
+    ],
+    [
+      45,
+      12,
+      0,
+      24,
+      0,
+      "CLIP"
+    ],
+    [
+      47,
+      24,
+      0,
+      21,
+      1,
+      "CONDITIONING"
     ]
   ],
   "groups": [
@@ -802,10 +802,10 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.6209213230591557,
+      "scale": 0.6209213230591553,
       "offset": [
-        -473.5420635848898,
-        445.9831671661636
+        -208.9235551885895,
+        437.03072418650265
       ]
     },
     "frontendVersion": "1.37.11",
