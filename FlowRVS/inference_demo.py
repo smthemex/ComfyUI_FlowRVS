@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from tqdm import tqdm
-
+from diffusers.training_utils import EMAModel
 #import opts
 from .util import misc  as utils_
 from .models.wan_rvos import build_dit
@@ -73,15 +73,25 @@ def load_dit(args):
     if args.resume:
         print(f"[Loading checkpoint from {args.resume}")
         checkpoint = torch.load(args.resume, map_location='cpu', weights_only=False)
-        model_state_dict = checkpoint.get('model', checkpoint) 
-
-        missing_keys, unexpected_keys = model.load_state_dict(model_state_dict, strict=False)
-
-        unexpected_keys = [k for k in unexpected_keys if not (k.endswith('total_params') or k.endswith('total_ops'))]
-        if len(missing_keys) > 0:
-            print(f'Missing Keys: {missing_keys}')
-        if len(unexpected_keys) > 0:
-            print(f'Unexpected Keys: {unexpected_keys}')
+        if 'model' in checkpoint:
+            print("[Info] Loading base model weights (to restore buffers)...")
+            model.load_state_dict(checkpoint['model'], strict=False)
+        
+        if 'ema_model' in checkpoint:
+            print("[Info] Found 'ema_model'. Applying EMA weights...")
+            ema_helper = EMAModel(
+                model.parameters(),
+                decay=0.9999,
+                model_cls=type(model),
+                model_config=model.config
+            )
+            ema_helper.load_state_dict(checkpoint['ema_model'])
+            ema_helper.copy_to(model.parameters())
+            print("[Info] EMA weights applied successfully.")
+            del ema_helper
+            torch.cuda.empty_cache()
+        else:
+            print("[Warning] No EMA found in checkpoint, using standard weights.")
         del checkpoint
         gc_cleanup()
     else:
@@ -180,8 +190,6 @@ def data_processor(prompt_embeds,vae,video_t,device,dtype):
     device, dtype = vae.device, vae.dtype
     mean_tensor = torch.tensor(vae.config.latents_mean, device=device, dtype=dtype).view(1, -1, 1, 1, 1)
     std_tensor = torch.tensor(vae.config.latents_std, device=device, dtype=dtype).view(1, -1, 1, 1, 1)
-
-
     target_h, target_w = (480, 832)
     t,origin_h,origin_w,_=video_t.shape
     imgs = tensor_upscale(video_t, target_w, target_h)
@@ -197,12 +205,12 @@ def data_processor(prompt_embeds,vae,video_t,device,dtype):
     with torch.no_grad():
         #prompt_embeds, _ = text_processor.encode_prompt_and_cfg(prompt=[prompt], device=device, dtype=dtype, do_classifier_free_guidance=cfg)
         #del text_processor
-        
         imgs = check_shape(imgs)
         x0_video_latent = vae.encode(imgs.to(vae.dtype)).latent_dist.mean
         #x0_video_latent = vae.encode(imgs.transpose(1, 2).to(vae.dtype)).latent_dist.mean
         x0_video_latent = (x0_video_latent - mean_tensor) / std_tensor
         x0_video_latent=x0_video_latent.to(device)
+
         prompt_embeds=prompt_embeds.to(device,dtype=dtype)
     vae.to("cpu")
     gc_cleanup()
@@ -213,44 +221,7 @@ def inference_single_video(model,steps, model_id, x0_video_latent, prompt_embeds
     model=model.to(device)
     scheduler = FlowMatchEulerDiscreteScheduler.from_config(model_id, subfolder="scheduler")
 
-    # fname, ext = os.path.splitext(os.path.basename(video_path))
-    # if ext.lower() == '.mp4':
-    #     temp_frames_folder = os.path.join(args.output_dir, f"frames_{fname}")
-    #     frames_folder, frames_list, frame_ext = extract_frames_from_mp4(video_path, temp_frames_folder)
-    # elif os.path.isdir(video_path):
-    #     frames_folder = video_path
-    #     all_files = os.listdir(frames_folder)
-    #     image_files = [f for f in all_files if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
-    #     if not image_files:
-    #         frames_list = []
-    #         frame_ext = None
-    #     else:
-    #         frames_list = sorted([os.path.splitext(f)[0] for f in image_files])
-    #         frame_ext = os.path.splitext(image_files[0])[1]
-    # else:
-    #     raise ValueError(f"Path is not rigjt: {video_path}")
- 
-    # device, dtype = vae.device, vae.dtype
-    # mean_tensor = torch.tensor(vae.config.latents_mean, device=device, dtype=dtype).view(1, -1, 1, 1, 1)
-    # std_tensor = torch.tensor(vae.config.latents_std, device=device, dtype=dtype).view(1, -1, 1, 1, 1)
-
-    # target_h, target_w = (480, 832)
-    # total,origin_h,origin_w,_=video_t.shape
-    # imgs = tensor_upscale(video_t, target_w, target_h)
-    #vd = VideoEvalDataset(frames_folder, frames_list, frame_ext, target_h=target_h, target_w=target_w)
-    #dl = DataLoader(vd, batch_size=len(frames_list), num_workers=args.num_workers, shuffle=False)
-    #origin_w, origin_h = vd.origin_w, vd.origin_h
-
-    #(imgs, _) = next(iter(dl))
-    # imgs = imgs.to(device)
-
-    # t = imgs.shape[0]
-
-    # original_len = t
-    # if (t - 1) % 4 != 0:
-    #     num_padding_frames = (4 - (t - 1) % 4) % 4
-    #     padding_frames = imgs[-1:].repeat(num_padding_frames, 1, 1, 1)
-    #     imgs = torch.cat([imgs, padding_frames], dim=0)
+   
     latents_mean= [
         -0.7571,
         -0.7089,
@@ -318,7 +289,7 @@ def inference_single_video(model,steps, model_id, x0_video_latent, prompt_embeds
                 encoder_hidden_states=prompt_embeds,
             )[0]
             latents = scheduler.step(noise_pred, t, latents)[0]
-        latents = latents * std_tensor + mean_tensor
+        #latents = latents * std_tensor + mean_tensor
         del x0_video_latent, prompt_embeds, noise_pred,std_tensor, mean_tensor
     model.to("cpu")
     gc_cleanup()
@@ -328,7 +299,8 @@ def inference_single_video(model,steps, model_id, x0_video_latent, prompt_embeds
 def decode_latents(vae,latents,origin_h, origin_w,original_len,threshold,device,morphological,connected_components,gaussian,shrink_pixels=0,kernel_size=3,min_area_ratio=0.01,sigma=1.0,shrink_method="uniform"):
     #latents = latents * std_tensor_mask + mean_tensor_mask
     vae.to(device)
-    all_pred_masks = vae.decode(latents.detach())[0]
+    with torch.no_grad():
+        all_pred_masks = vae.decode(latents.detach())[0]
     vae.to("cpu")
     del latents
     gc_cleanup()
