@@ -3,7 +3,7 @@
 
 # Update
 * support new checkpoints,and fix some bugs
-* 支持新的模型，调整emb长度，调整解码和加载模型的代码，应该算是复现了
+* 支持新的模型，调整emb长度，调整解码和加载模型的代码，修复归一代码，方法在fps表现更佳
 
 # 1. Installation
 In the ./ComfyUI/custom_nodes directory, run the following:   
@@ -36,6 +36,7 @@ pip install -r requirements.txt
 
 # 4.Example
 ![](https://github.com/smthemex/ComfyUI_FlowRVS/blob/main/example_workflows/example.png)
+![](https://github.com/smthemex/ComfyUI_FlowRVS/blob/main/example_workflows/soul.png)
 ![](https://github.com/smthemex/ComfyUI_FlowRVS/blob/main/example_workflows/example.gif)
 
 # 5.Citation
