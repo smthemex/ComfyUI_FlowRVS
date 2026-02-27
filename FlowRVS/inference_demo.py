@@ -175,6 +175,27 @@ def prepare_models(args):
 
     return model, vae
 
+def map_0_1_to_neg1_1(t):
+
+    if not torch.is_tensor(t):
+        t = torch.tensor(t)
+    t = t.float()
+    # 处理 0..255 的情况
+    try:
+        vmax = float(t.max())
+    except Exception:
+        vmax = 1.0
+    if vmax > 2.0:
+        t = t / 255.0
+    # 若当前处于 0..1 范围，则映射到 -1..1
+    try:
+        vmin = float(t.min())
+        vmax = float(t.max())
+    except Exception:
+        vmin, vmax = -1.0, 1.0
+    if vmin >= 0.0 and vmax <= 1.1:
+        t = t * 2.0 - 1.0
+    return t
 
 def load_text_processor(model_id,text_encoder,device):
     tokenizer = AutoTokenizer.from_pretrained(model_id, subfolder="tokenizer")
@@ -184,16 +205,21 @@ def load_text_processor(model_id,text_encoder,device):
     # text_processor.text_encoder.to(torch.bfloat16)
     return text_processor
 
-def data_processor(prompt_embeds,vae,video_t,device,dtype):
+def data_processor(prompt_embeds,vae,imgs,device,dtype):
     if vae.device != device :
         vae.to(device)
     device, dtype = vae.device, vae.dtype
     mean_tensor = torch.tensor(vae.config.latents_mean, device=device, dtype=dtype).view(1, -1, 1, 1, 1)
     std_tensor = torch.tensor(vae.config.latents_std, device=device, dtype=dtype).view(1, -1, 1, 1, 1)
-    target_h, target_w = (480, 832)
-    t,origin_h,origin_w,_=video_t.shape
-    imgs = tensor_upscale(video_t, target_w, target_h)
-    imgs = imgs.to(device)
+    t,origin_h,origin_w,_=imgs.shape
+
+    target_h, target_w = (480, 832) if origin_h<origin_w else (832, 480)
+
+    
+    imgs = tensor_upscale(imgs, target_w, target_h)
+    imgs=map_0_1_to_neg1_1(imgs)
+    if imgs.device != device:
+        imgs = imgs.to(device)
 
     if (t - 1) % 4 != 0:
         num_padding_frames = (4 - (t - 1) % 4) % 4
